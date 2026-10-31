@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TAF | Exhibition CRM</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  --blue:#123b68;
+  --blue2:#1c568e;
+  --bg:#f3f6fa;
+  --text:#182536;
+  --muted:#738196;
+  --border:#e3e9f0;
+}
+* { box-sizing:border-box }
+body {
+  margin:0;
+  font-family:Tahoma,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+header {
+  background:#fff;
+  border-bottom:1px solid var(--border);
+  padding:17px 5%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.logo {font-size:23px;font-weight:900;color:var(--blue)}
+.logo span {color:#e87524}
+header small {color:var(--muted);font-size:12px}
+.container {max-width:1250px;margin:30px auto;padding:0 20px}
+.card {
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:13px;
+  padding:23px;
+  margin-bottom:20px;
+  box-shadow:0 3px 15px #162d4610;
+}
+h2 {font-size:18px;margin:0 0 20px}
+h3 {font-size:15px;margin:0 0 15px}
+label {display:block;font-size:12px;color:#526176;margin-bottom:7px}
+input,select,textarea {
+  width:100%;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  font-family:inherit;
+  font-size:13px;
+  background:#fff;
+  color:var(--text);
+}
+input:focus,select:focus,textarea:focus {
+  outline:2px solid #b9d6f4;
+  border-color:var(--blue2);
+}
+textarea {min-height:85px;resize:vertical}
+button {
+  border:0;
+  border-radius:8px;
+  padding:12px 19px;
+  cursor:pointer;
+  font-family:inherit;
+  font-size:13px;
+  font-weight:bold;
+}
+.primary {background:var(--blue);color:white}
+.primary:hover {background:var(--blue2)}
+.secondary {background:#edf2f7;color:var(--blue)}
+.danger {background:#fff0f0;color:#b42318}
+.grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:15px;
+}
+.full {grid-column:1/-1}
+.actions {display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
+#loginBox {max-width:420px;margin:65px auto}
+#loginBox .logo {margin-bottom:25px}
+.stats {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:15px;
+  margin-bottom:20px;
+}
+.stat {
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:18px;
+}
+.stat small {color:var(--muted)}
+.stat strong {display:block;font-size:25px;margin-top:10px;color:var(--blue)}
+.topline {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.search {max-width:350px}
+.table-wrap {overflow-x:auto}
+table {width:100%;border-collapse:collapse;min-width:850px}
+th,td {
+  text-align:right;
+  padding:13px 10px;
+  border-bottom:1px solid var(--border);
+  font-size:12px;
+}
+th {background:#f7f9fc;color:#64748b}
+td {line-height:1.8}
+.badge {
+  display:inline-block;
+  padding:4px 9px;
+  border-radius:20px;
+  background:#edf3fa;
+  color:var(--blue);
+  font-size:11px;
+}
+.hidden {display:none!important}
+.muted {color:var(--muted);font-size:12px}
+#message {margin-top:12px;font-size:12px;line-height:1.8}
+footer {text-align:center;color:#9aa5b4;padding:25px;font-size:11px}
+@media(max-width:750px) {
+  .grid {grid-template-columns:1fr 1fr}
+  .stats {grid-template-columns:1fr 1fr}
+  .container {padding:0 12px}
+  .card {padding:16px}
+}
+@media(max-width:450px) {
+  .grid,.stats {grid-template-columns:1fr}
+  .full {grid-column:auto}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div>
+    <div class="logo">TAF<span>.</span></div>
+    <small>EXHIBITION MANAGEMENT SYSTEM</small>
+  </div>
+  <div id="userArea" class="hidden">
+    <span id="userName" class="muted"></span>
+    <button class="secondary" onclick="logout()">خروج</button>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- LOGIN -->
+  <section id="loginBox" class="card">
+    <div class="logo">TAF<span>.</span></div>
+    <h2>ورود به سامانه نمایشگاه</h2>
+    <p class="muted">برای ورود، ایمیل و رمز عبور اختصاصی خود را وارد کنید.</p>
+
+    <form id="loginForm">
+      <div style="margin-bottom:15px">
+        <label>ایمیل</label>
+        <input id="loginEmail" type="email" required autocomplete="username">
+      </div>
+      <div style="margin-bottom:15px">
+        <label>رمز عبور</label>
+        <input id="loginPassword" type="password" required autocomplete="current-password">
+      </div>
+      <button class="primary" type="submit" style="width:100%">ورود</button>
+    </form>
+    <div id="loginMessage"></div>
+  </section>
+
+  <!-- APPLICATION -->
+  <section id="app" class="hidden">
+
+    <div class="stats">
+      <div class="stat">
+        <small>تعداد کل مشتریان قابل مشاهده</small>
+        <strong id="totalCount">0</strong>
+      </div>
+      <div class="stat">
+        <small>مشتریان با اولویت بالا و فوری</small>
+        <strong id="urgentCount">0</strong>
+      </div>
+      <div class="stat">
+        <small>نقش کاربری</small>
+        <strong id="roleName" style="font-size:18px">پرسنل</strong>
+      </div>
+    </div>
+
+    <section class="card">
+      <h2>ثبت بازدیدکننده جدید</h2>
+
+      <form id="leadForm">
+        <div class="grid">
+
+          <div>
+            <label>نام و نام خانوادگی *</label>
+            <input id="full_name" required>
+          </div>
+
+          <div>
+            <label>شماره موبایل</label>
+            <input id="mobile" type="tel">
+          </div>
+
+          <div>
+            <label>ایمیل</label>
+            <input id="email" type="email">
+          </div>
+
+          <div>
+            <label>نام شرکت</label>
+            <input id="company">
+          </div>
+
+          <div>
+            <label>سمت شغلی</label>
+            <input id="job_title">
+          </div>
+
+          <div>
+            <label>صنعت / حوزه فعالیت</label>
+            <input id="industry">
+          </div>
+
+          <div>
+            <label>برند مورد علاقه</label>
+            <select id="brand">
+              <option value="">انتخاب کنید</option>
+              <option>Schneider Electric</option>
+              <option>Weidmuller</option>
+              <option>Both</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label>نوع درخواست</label>
+            <select id="request_type">
+              <option value="">انتخاب کنید</option>
+              <option>استعلام قیمت</option>
+              <option>خرید محصول</option>
+              <option>مشاوره فنی</option>
+              <option>پروژه</option>
+              <option>همکاری تجاری</option>
+              <option>سایر</option>
+            </select>
+          </div>
+
+          <div>
+            <label>اولویت پیگیری</label>
+            <select id="priority">
+              <option value="normal">معمولی</option>
+              <option value="low">پایین</option>
+              <option value="high">بالا</option>
+              <option value="urgent">فوری</option>
+            </select>
+          </div>
+
+          <div class="full">
+            <label>محصول یا کد فنی مورد نظر</label>
+            <input id="product" placeholder="مثلاً ATS480، ATV930، ACB و ...">
+          </div>
+
+          <div class="full">
+            <label>توضیحات و نیازهای مشتری</label>
+            <textarea id="notes"></textarea>
+          </div>
+
+        </div>
+
+        <div class="actions">
+          <button class="primary" type="submit" id="saveBtn">ثبت اطلاعات مشتری</button>
+          <button class="secondary" type="reset">پاک کردن فرم</button>
+        </div>
+      </form>
+      <div id="formMessage"></div>
+    </section>
+
+    <section class="card">
+      <div class="topline" style="margin-bottom:18px">
+        <h2 style="margin:0">فهرست بازدیدکنندگان</h2>
+        <div class="actions" style="margin:0">
+          <input id="search" class="search" placeholder="جست‌وجو در مشتریان...">
+          <button class="secondary" onclick="exportCSV()">خروجی CSV</button>
+          <button class="secondary" onclick="loadLeads()">بروزرسانی</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>نام</th>
+              <th>شرکت</th>
+              <th>موبایل</th>
+              <th>برند</th>
+              <th>درخواست</th>
+              <th>اولویت</th>
+              <th>ثبت‌کننده</th>
+              <th>تاریخ ثبت</th>
+            </tr>
+          </thead>
+          <tbody id="leadRows">
+            <tr><td colspan="8">در حال بارگذاری...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" id="tableInfo"></p>
+    </section>
+
+  </section>
+</main>
+
+<footer>TAF | Tehran Technical Supply — Exhibition CRM</footer>
+
+<script>
+const SUPABASE_URL = "https://apasclrzfiowcrrwkqyk.supabase.co";
+const SUPABASE_KEY = "sb_publishable_2ZTwqI8ETWldwUnmnJTtIQ_vJkoUbXm";
+
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let currentProfile = null;
+let allLeads = [];
+
+const $ = id => document.getElementById(id);
+
+function safe(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;",
+    '"':"&quot;", "'":"&#039;"
+  }[c]));
+}
+
+function showMessage(id, message, error=false) {
+  $(id).textContent = message;
+  $(id).style.color = error ? "#b42318" : "#16804a";
+}
+
+async function login(email, password) {
+  const {data, error} = await db.auth.signInWithPassword({email, password});
+  if (error) throw error;
+  currentUser = data.user;
+  await loadProfile();
+  showApp();
+}
+
+async function loadProfile() {
+  const {data, error} = await db
+    .from("profiles")
+    .select("id,full_name,role")
+    .eq("id", currentUser.id)
+    .single();
+
+  if (error) throw error;
+  currentProfile = data;
+}
+
+function showApp() {
+  $("loginBox").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  $("userArea").classList.remove("hidden");
+
+  $("userName").textContent =
+    currentProfile.full_name || currentUser.email;
+
+  $("roleName").textContent =
+    currentProfile.role === "admin" ? "مدیر سیستم" : "پرسنل";
+
+  loadLeads();
+}
+
+async function logout() {
+  await db.auth.signOut();
+  currentUser = null;
+  currentProfile = null;
+  allLeads = [];
+  $("app").classList.add("hidden");
+  $("userArea").classList.add("hidden");
+  $("loginBox").classList.remove("hidden");
+}
+
+$("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  showMessage("loginMessage", "در حال ورود...");
+
+  try {
+    await login($("loginEmail").value.trim(), $("loginPassword").value);
+  } catch (err) {
+    showMessage("loginMessage", "خطا در ورود: " + err.message, true);
+  }
+});
+
+async function loadLeads() {
+  $("leadRows").innerHTML =
+    '<tr><td colspan="8">در حال دریافت اطلاعات...</td></tr>';
+
+  const {data, error} = await db
+    .from("leads")
+    .select("*")
+    .order("created_at", {ascending:false});
+
+  if (error) {
+    $("leadRows").innerHTML =
+      '<tr><td colspan="8">خطا در دریافت اطلاعات</td></tr>';
+    showMessage("tableInfo", error.message, true);
+    return;
+  }
+
+  allLeads = data || [];
+
+  const ids = [...new Set(allLeads.map(x => x.created_by))];
+  let profiles = {};
+
+  if (ids.length) {
+    const {data: people} = await db
+      .from("profiles")
+      .select("id,full_name")
+      .in("id", ids);
+
+    (people || []).forEach(p => profiles[p.id] = p.full_name);
+  }
+
+  allLeads.forEach(x => {
+    x.creator_name = profiles[x.created_by] || "—";
+  });
+
+  $("totalCount").textContent = allLeads.length;
+  $("urgentCount").textContent =
+    allLeads.filter(x => ["high","urgent"].includes(x.priority)).length;
+
+  renderLeads(allLeads);
+}
+
+function renderLeads(rows) {
+  if (!rows.length) {
+    $("leadRows").innerHTML =
+      '<tr><td colspan="8">هنوز مشتری‌ای ثبت نشده است.</td></tr>';
+    $("tableInfo").textContent = "";
+    return;
+  }
+
+  $("leadRows").innerHTML = rows.map(x => `
+    <tr>
+      <td><b>${safe(x.full_name)}</b></td>
+      <td>${safe(x.company)}</td>
+      <td>${safe(x.mobile)}</td>
+      <td>${safe(x.brand)}</td>
+      <td>${safe(x.request_type)}</td>
+      <td><span class="badge">${safe(priorityLabel(x.priority))}</span></td>
+      <td>${safe(x.creator_name)}</td>
+      <td>${safe(new Date(x.created_at).toLocaleDateString("fa-IR"))}</td>
+    </tr>
+  `).join("");
+
+  $("tableInfo").textContent = `${rows.length} مشتری`;
+}
+
+function priorityLabel(value) {
+  return {
+    low:"پایین",
+    normal:"معمولی",
+    high:"بالا",
+    urgent:"فوری"
+  }[value] || value || "—";
+}
+
+$("search").addEventListener("input", e => {
+  const q = e.target.value.trim().toLowerCase();
+
+  const filtered = allLeads.filter(x =>
+    [
+      x.full_name, x.mobile, x.email, x.company,
+      x.job_title, x.industry, x.brand,
+      x.request_type, x.product, x.notes,
+      x.creator_name
+    ].some(v => String(v || "").toLowerCase().includes(q))
+  );
+
+  renderLeads(filtered);
+});
+
+$("leadForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const btn = $("saveBtn");
+  btn.disabled = true;
+  btn.textContent = "در حال ثبت...";
+
+  const fields = [
+    "full_name","mobile","email","company","job_title",
+    "industry","brand","request_type","priority","product","notes"
+  ];
+
+  const record = {created_by:currentUser.id};
+
+  fields.forEach(id => {
+    const value = $(id).value.trim();
+    record[id] = value || null;
+  });
+
+  try {
+    const {error} = await db.from("leads").insert(record);
+    if (error) throw error;
+
+    $("leadForm").reset();
+    showMessage("formMessage", "اطلاعات مشتری با موفقیت ثبت شد.");
+    await loadLeads();
+
+  } catch (err) {
+    showMessage("formMessage", "خطا در ثبت: " + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "ثبت اطلاعات مشتری";
+  }
+});
+
+function exportCSV() {
+  const headers = [
+    "نام","موبایل","ایمیل","شرکت","سمت",
+    "صنعت","برند","نوع درخواست","اولویت",
+    "محصول","توضیحات","ثبت‌کننده","تاریخ"
+  ];
+
+  const keys = [
+    "full_name","mobile","email","company","job_title",
+    "industry","brand","request_type","priority",
+    "product","notes","creator_name","created_at"
+  ];
+
+  const rows = allLeads.map(x =>
+    keys.map(k => `"${String(x[k] ?? "").replace(/"/g,'""')}"`).join(",")
+  );
+
+  const csv = "\uFEFF" + [
+    headers.map(x => `"${x}"`).join(","),
+    ...rows
+  ].join("\r\n");
+
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "TAF-Exhibition-Leads.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Restore an existing session if the user refreshes the page
+(async function init() {
+  const {data} = await db.auth.getSession();
+
+  if (data.session) {
+    currentUser = data.session.user;
+    try {
+      await loadProfile();
+      showApp();
+    } catch (err) {
+      await db.auth.signOut();
+      showMessage("loginMessage", "پروفایل کاربر پیدا نشد: " + err.message, true);
+    }
+  }
+})();
+</script>
+
+</body>
+</html>
